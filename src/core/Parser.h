@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 #include "Command.h"
-#include "include/nlohmann/json.hpp"
 
 class Parser
 {
@@ -18,12 +17,12 @@ class Parser
     std::vector<Command> commands{};
     std::vector<int> function_index{};
     std::vector<char> bytes{};
-    void read(int size);
-    int read_int() const;
+    void read_file(int size);
+    int read_file_int() const;
     static std::vector<Format> fmt_parse(const std::string& fmt);
 public:
     Parser(std::ifstream& file, const std::string& game);
-    void decode();
+    void register_file();
 };
 
 #endif //BBSCRIPT_EDITOR_BLOCK_H

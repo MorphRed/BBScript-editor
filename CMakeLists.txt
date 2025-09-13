@@ -6,6 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+include_directories(depends)
 
 find_package(Qt6 COMPONENTS
         Core
@@ -13,21 +14,23 @@ find_package(Qt6 COMPONENTS
         Widgets
         REQUIRED)
 
-add_executable(BBScript_editor main.cpp
-        parser/Parser.cpp
-        parser/Parser.h
-        parser/Struct.cpp
-        parser/Struct.h
-        parser/Command.cpp
-        parser/Command.h
+add_executable(BBScript_editor src/main.cpp
+        src/core/Parser.cpp
+        src/core/Parser.h
+        src/core/Struct.cpp
+        src/core/Struct.h
+        src/core/Command.cpp
+        src/core/Command.h
 )
 
-target_include_directories(BBScript_editor PRIVATE parser/include)
+target_include_directories(BBScript_editor PRIVATE depends)
 
 target_link_libraries(BBScript_editor
         Qt::Core
         Qt::Gui
         Qt::Widgets
 )
+
+file(COPY res/static_db DESTINATION ${CMAKE_BINARY_DIR})
 
 

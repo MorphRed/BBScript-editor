@@ -7,10 +7,10 @@
 #include <charconv>
 #include <format>
 #include <iostream>
-#include <qtextstream.h>
 #include <vector>
 
-#include "include/nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
+#include "whereami/whereami.h"
 
 using json = nlohmann::json;
 
@@ -71,7 +71,8 @@ std::vector<Format> Parser::fmt_parse(const std::string& fmt)
 Parser::Parser(std::ifstream& file, const std::string& game) : file(file)
 {
     bytes.reserve(256);
-    const std::string path{"../static_db/" + game + "/"};
+    // TODO Fix relative pathing of the executable
+    const std::string path{"static_db/" + game + "/"};
     auto command_db = json::parse(std::ifstream{path + "command_db.json"});
     auto function_db = json::parse(std::ifstream{path + "function_db.json"});
     for (auto& [key, value] : command_db.items())
@@ -100,16 +101,16 @@ Parser::Parser(std::ifstream& file, const std::string& game) : file(file)
                       : Id{cmd_id, key, formats, std::nullopt, size};
         cmd_id_db.insert({cmd_id, id});
     }
-    // for (auto& [key, value] : function_db.items())
-    // {
-    //     int cmd_id;
-    //     std::from_chars(key.data(), key.data() + key.size(), cmd_id);
-    //     value
-    // }
+    for (auto& [key, value] : function_db.items())
+    {
+        // int cmd_id;
+        // std::from_chars(key.data(), key.data() + key.size(), cmd_id);
+        // value
+    }
     // TODO alias files
 }
 
-void Parser::read(const int size)
+void Parser::read_file(const int size)
 {
     // We will assume little endian because there is no way Arcsys has/uses processors with big endian
     bytes.clear();
@@ -117,24 +118,24 @@ void Parser::read(const int size)
     file.read(bytes.data(), size);
 }
 
-int Parser::read_int() const
+int Parser::read_file_int() const
 {
     char tmp[4];
     file.read(tmp, 4);
     return *reinterpret_cast<int*>(tmp);
 }
 
-void Parser::decode()
+void Parser::register_file()
 {
     file.seekg(0, std::ios::beg);
-    const int FUNCTION_COUNT = read_int();
+    const int FUNCTION_COUNT = read_file_int();
     file.seekg(4 + 0x24 * FUNCTION_COUNT);
     while (!file.eof())
     {
-        const int cmd_id = read_int();
+        const int cmd_id = read_file_int();
         std::vector<char> byte_arguments;
         Id* id = &cmd_id_db.at(cmd_id);
-        read(id->size);
+        read_file(id->size);
         byte_arguments = bytes;
         commands.emplace_back(id, byte_arguments);
     }

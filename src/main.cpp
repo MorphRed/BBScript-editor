@@ -2,7 +2,7 @@
 #include <QApplication>
 #include <QPushButton>
 
-#include "parser/Parser.h"
+#include "core/Parser.h"
 
 int main(int argc, char* argv[])
 {
@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     
     const std::string game{"BBCF"};
     Parser parser{in, game};
-    parser.decode();
+    parser.register_file();
     QApplication a(argc, argv);
     QPushButton button("Hello world!", nullptr);
     button.resize(200, 100);
