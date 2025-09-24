@@ -68,14 +68,14 @@ std::vector<Format> Parser::fmt_parse(const std::string& fmt)
     return formats;
 }
 
-Parser::Parser(std::ifstream& file, const std::string& game) : file(file)
+Parser::Parser(const std::string& game)
 {
-    bytes.reserve(256);
+    this->game = game;
     // TODO Fix relative pathing of the executable
     const std::string path{"static_db/" + game + "/"};
-    auto command_db = json::parse(std::ifstream{path + "command_db.json"});
-    auto function_db = json::parse(std::ifstream{path + "function_db.json"});
-    for (auto& [key, value] : command_db.items())
+    auto command_json = json::parse(std::ifstream{path + "command_db.json"});
+    auto function_json = json::parse(std::ifstream{path + "function_db.json"});
+    for (auto& [key, value] : command_json.items())
     {
         int cmd_id;
         std::from_chars(key.data(), key.data() + key.size(), cmd_id);
@@ -101,7 +101,7 @@ Parser::Parser(std::ifstream& file, const std::string& game) : file(file)
                       : Id{cmd_id, key, formats, std::nullopt, size};
         cmd_id_db.insert({cmd_id, id});
     }
-    for (auto& [key, value] : function_db.items())
+    for (auto& [key, value] : function_json.items())
     {
         // int cmd_id;
         // std::from_chars(key.data(), key.data() + key.size(), cmd_id);
@@ -110,26 +110,27 @@ Parser::Parser(std::ifstream& file, const std::string& game) : file(file)
     // TODO alias files
 }
 
-void Parser::read_file(const int size)
+void Parser::register_file(std::ifstream& file)
 {
-    // We will assume little endian because there is no way Arcsys has/uses processors with big endian
-    bytes.clear();
-    bytes.resize(size);
-    file.read(bytes.data(), size);
-}
-
-int Parser::read_file_int() const
-{
-    char tmp[4];
-    file.read(tmp, 4);
-    return *reinterpret_cast<int*>(tmp);
-}
-
-void Parser::register_file()
-{
+    std::vector<char> bytes{};
+    bytes.reserve(256);
+    auto read_file_int = [&file]()
+    {
+        char tmp[4];
+        file.read(tmp, 4);
+        return *reinterpret_cast<int*>(tmp);
+    };
+    auto read_file = [&bytes, &file](const int size)
+    {
+        // We will assume little endian because there is no way Arcsys has/uses processors with big endian
+        bytes.clear();
+        bytes.resize(size);
+        file.read(bytes.data(), size);
+    };
     file.seekg(0, std::ios::beg);
     const int FUNCTION_COUNT = read_file_int();
     file.seekg(4 + 0x24 * FUNCTION_COUNT);
+    std::vector<Command> commands{};
     while (!file.eof())
     {
         const int cmd_id = read_file_int();
@@ -139,4 +140,5 @@ void Parser::register_file()
         byte_arguments = bytes;
         commands.emplace_back(id, byte_arguments);
     }
+    editors.push_back(Editor{commands});
 }

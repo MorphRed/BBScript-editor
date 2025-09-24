@@ -21,6 +21,9 @@ add_executable(BBScript_editor src/main.cpp
         src/core/Struct.h
         src/core/Command.cpp
         src/core/Command.h
+        src/core/Editor.cpp
+        src/core/Editor.h
+        depends/red-black-tree/RBTree.cpp
 )
 
 target_include_directories(BBScript_editor PRIVATE depends)

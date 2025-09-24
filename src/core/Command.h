@@ -14,7 +14,6 @@ class Command
 {
     Id* id;
     std::vector<char> byte_arguments;
-    std::vector<std::any> arguments;
 
 public:
     Command(Id* id, const std::vector<char>& byte_arguments);
