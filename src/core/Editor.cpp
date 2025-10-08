@@ -16,3 +16,4 @@ PieceTable::PieceTable(const std::vector<Command>& commands)
 Editor::Editor(const std::vector<Command>& commands) : piece_table(commands)
 {
 }
+

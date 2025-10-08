@@ -5,6 +5,8 @@
 #ifndef RED_BLACK_TREE_RBTREE_H
 #define RED_BLACK_TREE_RBTREE_H
 
+#include "Command.h"
+
 enum Color { RED, BLACK, DOUBLE_BLACK };
 
 struct Node
@@ -16,10 +18,17 @@ struct Node
     Node(int, int, int);
 };
 
-class RBTree
+class PieceTable
 {
 protected:
+    class Buffer
+    {
+    public:
+        std::vector<Command> commands;
+    };
+    std::vector<Buffer> buffers;
     Node* root;
+    
     void rotateLeft(Node*&);
     void rotateRight(Node*&);
     void fixInsertRBTree(Node*&);
@@ -31,11 +40,11 @@ protected:
     Node* insertBST(Node*&, int pos, Node*&);
     Node* deleteBST(Node*&, int);
     int getBlackHeight(Node*);
-
-public:
-    RBTree();
     void insertValue(int pos, int buffer_index, int start, int length);
     void deleteValue(int);
+
+public:
+    PieceTable();
 };
 
 

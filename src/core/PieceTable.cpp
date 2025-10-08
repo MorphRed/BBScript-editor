@@ -2,7 +2,8 @@
 // Red Black Tree Implementation
 //
 #include <bits/stdc++.h>
-#include "RBTree.h"
+#include "PieceTable.h"
+
 using namespace std;
 
 Node::Node(const int buffer_index, const int start, const int length)
@@ -14,12 +15,12 @@ Node::Node(const int buffer_index, const int start, const int length)
     left = right = parent = nullptr;
 }
 
-RBTree::RBTree()
+PieceTable::PieceTable()
 {
     root = nullptr;
 }
 
-int RBTree::getColor(Node*& node)
+int PieceTable::getColor(Node*& node)
 {
     if (node == nullptr)
         return BLACK;
@@ -27,7 +28,7 @@ int RBTree::getColor(Node*& node)
     return node->color;
 }
 
-void RBTree::setColor(Node*& node, int color)
+void PieceTable::setColor(Node*& node, int color)
 {
     if (node == nullptr)
         return;
@@ -35,8 +36,9 @@ void RBTree::setColor(Node*& node, int color)
     node->color = color;
 }
 
-Node* RBTree::insertBST(Node*& root, const int pos, Node*& ptr)
+Node* PieceTable::insertBST(Node*& root, const int pos, Node*& ptr)
 {
+    // this insert the node ptr inside the structure of root
     if (root == nullptr)
         return ptr;
     int root_pos = 0;
@@ -62,14 +64,14 @@ Node* RBTree::insertBST(Node*& root, const int pos, Node*& ptr)
     return root;
 }
 
-void RBTree::insertValue(const int pos, const int buffer_index, const int start, const int length)
+void PieceTable::insertValue(const int pos, const int buffer_index, const int start, const int length)
 {
     Node* node = new Node(buffer_index, start, length);
     root = insertBST(root, pos, node);
     fixInsertRBTree(node);
 }
 
-void RBTree::rotateLeft(Node*& ptr)
+void PieceTable::rotateLeft(Node*& ptr)
 {
     Node* right_child = ptr->right;
     ptr->right = right_child->left;
@@ -90,7 +92,7 @@ void RBTree::rotateLeft(Node*& ptr)
     ptr->parent = right_child;
 }
 
-void RBTree::rotateRight(Node*& ptr)
+void PieceTable::rotateRight(Node*& ptr)
 {
     Node* left_child = ptr->left;
     ptr->left = left_child->right;
@@ -111,7 +113,7 @@ void RBTree::rotateRight(Node*& ptr)
     ptr->parent = left_child;
 }
 
-void RBTree::fixInsertRBTree(Node*& ptr)
+void PieceTable::fixInsertRBTree(Node*& ptr)
 {
     Node* parent = nullptr;
     Node* grandparent = nullptr;
@@ -169,7 +171,7 @@ void RBTree::fixInsertRBTree(Node*& ptr)
     setColor(root, BLACK);
 }
 
-void RBTree::fixDeleteRBTree(Node*& node)
+void PieceTable::fixDeleteRBTree(Node*& node)
 {
     if (node == nullptr)
         return;
@@ -294,7 +296,7 @@ void RBTree::fixDeleteRBTree(Node*& node)
     }
 }
 
-Node* RBTree::deleteBST(Node*& root, int pos)
+Node* PieceTable::deleteBST(Node*& root, int pos)
 {
     return nullptr;
     // if (root == nullptr)
@@ -319,13 +321,13 @@ Node* RBTree::deleteBST(Node*& root, int pos)
     // return deleteBST(root->right, temp->data);
 }
 
-void RBTree::deleteValue(int data)
+void PieceTable::deleteValue(int data)
 {
     Node* node = deleteBST(root, data);
     fixDeleteRBTree(node);
 }
 
-Node* RBTree::minValueNode(Node*& node)
+Node* PieceTable::minValueNode(Node*& node)
 {
     Node* ptr = node;
 
@@ -335,7 +337,7 @@ Node* RBTree::minValueNode(Node*& node)
     return ptr;
 }
 
-Node* RBTree::maxValueNode(Node*& node)
+Node* PieceTable::maxValueNode(Node*& node)
 {
     Node* ptr = node;
 
@@ -345,7 +347,7 @@ Node* RBTree::maxValueNode(Node*& node)
     return ptr;
 }
 
-int RBTree::getBlackHeight(Node* node)
+int PieceTable::getBlackHeight(Node* node)
 {
     int blackheight = 0;
     while (node != nullptr)
@@ -355,4 +357,13 @@ int RBTree::getBlackHeight(Node* node)
         node = node->left;
     }
     return blackheight;
+}
+
+void PieceTable::insert(int line, Command command) 
+{
+    // todo
+    // What i want to do is 
+    // check the position of the line in the nodes
+    // insert the command in the text buffer
+    // update the node
 }
