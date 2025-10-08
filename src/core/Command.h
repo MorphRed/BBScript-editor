@@ -5,7 +5,6 @@
 #ifndef BBSCRIPT_EDITOR_COMMAND_H
 #define BBSCRIPT_EDITOR_COMMAND_H
 
-#include <any>
 #include <vector>
 
 #include "Struct.h"

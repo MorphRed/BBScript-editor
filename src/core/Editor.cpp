@@ -4,16 +4,13 @@
 
 #include "Editor.h"
 
-#include <qelapsedtimer.h>
 
-PieceTable::PieceTable(const std::vector<Command>& commands)
+Editor::Editor(Parser& parser, const std::vector<Command>& commands) : parser(parser), piece_table(commands)
 {
-    buffers = {{commands}};
-    
-    root = new Node(0, 0, commands.size());
 }
 
-Editor::Editor(const std::vector<Command>& commands) : piece_table(commands)
+void Editor::insert(const int line, std::vector<Command>& commands)
 {
+    piece_table.insert(line, commands);
 }
 

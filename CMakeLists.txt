@@ -7,7 +7,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 include_directories(depends)
-
+# I got no idea how cmake works lol
 find_package(Qt6 COMPONENTS
         Core
         Gui
@@ -25,6 +25,7 @@ add_executable(BBScript_editor src/main.cpp
         src/core/Editor.h
         src/core/PieceTable.cpp
         src/core/PieceTable.h
+        depends/whereami/whereami.c
 )
 
 target_include_directories(BBScript_editor PRIVATE depends)

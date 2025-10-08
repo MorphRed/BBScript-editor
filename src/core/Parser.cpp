@@ -71,8 +71,14 @@ std::vector<Format> Parser::fmt_parse(const std::string& fmt)
 Parser::Parser(const std::string& game)
 {
     this->game = game;
-    // TODO Fix relative pathing of the executable
-    const std::string path{"static_db/" + game + "/"};
+    int dirname_length, path_len;
+    path_len = wai_getExecutablePath(NULL, 0, NULL);
+    auto path_c = static_cast<char*>(malloc(path_len + 1));
+    wai_getExecutablePath(path_c, path_len, &dirname_length);
+    path_c[dirname_length] = '\0';
+    std::string path = static_cast<std::string>(path_c) + "/static_db/" + game + "/";
+    free(path_c);
+    
     auto command_json = json::parse(std::ifstream{path + "command_db.json"});
     auto function_json = json::parse(std::ifstream{path + "function_db.json"});
     for (auto& [key, value] : command_json.items())
@@ -110,7 +116,7 @@ Parser::Parser(const std::string& game)
     // TODO alias files
 }
 
-void Parser::register_file(std::ifstream& file)
+Editor Parser::register_file(std::ifstream& file)
 {
     std::vector<char> bytes{};
     bytes.reserve(256);
@@ -140,5 +146,5 @@ void Parser::register_file(std::ifstream& file)
         byte_arguments = bytes;
         commands.emplace_back(id, byte_arguments);
     }
-    editors.push_back(Editor{commands});
+    return Editor{commands};
 }

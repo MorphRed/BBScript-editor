@@ -15,6 +15,12 @@ Node::Node(const int buffer_index, const int start, const int length)
     left = right = parent = nullptr;
 }
 
+PieceTable::PieceTable(const std::vector<Command>& commands)
+{
+    root = new Node(0, 0, static_cast<int>(commands.size()));
+    buffers = {{commands}};
+}
+
 PieceTable::PieceTable()
 {
     root = nullptr;
@@ -28,7 +34,7 @@ int PieceTable::getColor(Node*& node)
     return node->color;
 }
 
-void PieceTable::setColor(Node*& node, int color)
+void PieceTable::setColor(Node*& node, const int color)
 {
     if (node == nullptr)
         return;
@@ -36,39 +42,55 @@ void PieceTable::setColor(Node*& node, int color)
     node->color = color;
 }
 
-Node* PieceTable::insertBST(Node*& root, const int pos, Node*& ptr)
+void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
 {
-    // this insert the node ptr inside the structure of root
-    if (root == nullptr)
-        return ptr;
-    int root_pos = 0;
-    for (auto tmp = root; tmp != nullptr; tmp = tmp->left)
+    if (target == nullptr)
     {
-        root_pos += tmp->length;
+        target = insert;
+        return;
     }
-    if (pos < root_pos)
+
+    if (pos < target->left_subtree_length)
     {
-        root->left = insertBST(root->left, pos, ptr);
-        root->left->parent = root;
+        target->left_subtree_length += insert->length;
+        insertBST(target->left, pos, insert);
+        target->left->parent = target;
     }
-    else if (pos > root_pos)
+    else if (pos >= target->left_subtree_length + insert->length)
     {
-        root->right = insertBST(root->right, pos, ptr);
-        root->right->parent = root;
+        insertBST(target->right, pos - target->left_subtree_length, insert);
+        target->right->parent = target;
     }
     else
     {
-        //todo split the node if insidey
+        split_buffer = new Node(target->buffer_index, pos, target->length - pos);
+        target->length = pos;
+        insertBST(target->right, 0, insert);
+        target->right->parent = target;
     }
-
-    return root;
 }
 
 void PieceTable::insertValue(const int pos, const int buffer_index, const int start, const int length)
 {
-    Node* node = new Node(buffer_index, start, length);
-    root = insertBST(root, pos, node);
+    auto node = new Node(buffer_index, start, length);
+    insertBST(root, pos, node);
     fixInsertRBTree(node);
+    if (split_buffer != nullptr)
+    {
+        insertBST(node, node->length, split_buffer);
+        fixInsertRBTree(split_buffer);
+        split_buffer = nullptr;
+    }
+}
+
+void PieceTable::updateParentSubtreeLen(Node*& ptr, const int length)
+{
+    auto parent = ptr->parent;
+    if (parent == nullptr)
+        return;
+    if (parent->left == ptr)
+        parent->left_subtree_length += length;
+    updateParentSubtreeLen(parent, length);
 }
 
 void PieceTable::rotateLeft(Node*& ptr)
@@ -89,6 +111,8 @@ void PieceTable::rotateLeft(Node*& ptr)
         ptr->parent->right = right_child;
 
     right_child->left = ptr;
+    right_child->left_subtree_length = ptr->left_subtree_length + ptr->length;
+    updateParentSubtreeLen(right_child, right_child->length);
     ptr->parent = right_child;
 }
 
@@ -110,6 +134,7 @@ void PieceTable::rotateRight(Node*& ptr)
         ptr->parent->right = left_child;
 
     left_child->right = ptr;
+    ptr->left_subtree_length = left_child->left_subtree_length + left_child->length;
     ptr->parent = left_child;
 }
 
@@ -123,8 +148,7 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
         grandparent = parent->parent;
         if (parent == grandparent->left)
         {
-            Node* uncle = grandparent->right;
-            if (getColor(uncle) == RED)
+            if (Node* uncle = grandparent->right; getColor(uncle) == RED)
             {
                 setColor(uncle, BLACK);
                 setColor(parent, BLACK);
@@ -146,8 +170,7 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
         }
         else
         {
-            Node* uncle = grandparent->left;
-            if (getColor(uncle) == RED)
+            if (Node* uncle = grandparent->left; getColor(uncle) == RED)
             {
                 setColor(uncle, BLACK);
                 setColor(parent, BLACK);
@@ -323,6 +346,8 @@ Node* PieceTable::deleteBST(Node*& root, int pos)
 
 void PieceTable::deleteValue(int data)
 {
+    // Currently no plan to delete values in the piece table so idk
+    return;
     Node* node = deleteBST(root, data);
     fixDeleteRBTree(node);
 }
@@ -349,21 +374,24 @@ Node* PieceTable::maxValueNode(Node*& node)
 
 int PieceTable::getBlackHeight(Node* node)
 {
-    int blackheight = 0;
+    int black_height = 0;
     while (node != nullptr)
     {
         if (getColor(node) == BLACK)
-            blackheight++;
+            black_height++;
         node = node->left;
     }
-    return blackheight;
+    return black_height;
 }
 
-void PieceTable::insert(int line, Command command) 
+void PieceTable::appendToBuffer(Node*& ptr, std::vector<Command>& commands)
 {
-    // todo
-    // What i want to do is 
-    // check the position of the line in the nodes
-    // insert the command in the text buffer
-    // update the node
+    buffers.at(ptr->buffer_index).insert(buffers.at(ptr->buffer_index).end(), commands.begin(), commands.end());
+    ptr->length += static_cast<int>(commands.size());
+}
+
+void PieceTable::insert(const int line, std::vector<Command>& commands)
+{
+    insertValue(line, static_cast<int>(buffers.size()), 0, static_cast<int>(commands.size()));
+    buffers.emplace_back(commands);
 }
