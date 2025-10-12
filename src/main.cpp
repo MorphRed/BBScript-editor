@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     
     const std::string game{"BBCF"};
     Parser parser{game};
-    Editor character = parser.register_file(in);
+    parser.register_file(in);
     QApplication a(argc, argv);
     QPushButton button("Hello world!", nullptr);
     button.resize(200, 100);

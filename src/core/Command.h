@@ -11,11 +11,12 @@
 
 class Command
 {
-    Id* id;
+    const Id& id;
     std::vector<char> byte_arguments;
 
 public:
-    Command(Id* id, const std::vector<char>& byte_arguments);
+    Command(const Id& id, std::vector<char>& byte_arguments);
+    std::optional<std::vector<std::string>> getText();
 };
 
 

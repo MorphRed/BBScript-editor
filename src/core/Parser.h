@@ -16,11 +16,11 @@ class Parser
     std::string game;
     std::unordered_map<std::string, std::unordered_map<int, std::string>> aliases{};
     std::unordered_map<int, Id> cmd_id_db{};
-    static std::vector<Format> fmt_parse(const std::string& fmt);
-
+    static std::vector<ArgFormat> fmt_parse(const std::string& fmt);
 public:
+    std::vector<Editor> editors;
     explicit Parser(const std::string& game);
-    Editor register_file(std::ifstream& file);
+    void register_file(std::ifstream& file);
 };
 
 #endif //BBSCRIPT_EDITOR_BLOCK_H

@@ -24,7 +24,6 @@ class PieceTable
 protected:
     std::vector<std::vector<Command>> buffers;
     Node* root;
-    Node* split_buffer = nullptr;
 
     void rotateLeft(Node*&);
     void rotateRight(Node*&);
@@ -42,7 +41,7 @@ protected:
     void deleteValue(int);
 
 public:
-    void appendToBuffer(Node*& ptr, std::vector<Command>& commands);
+    void appendToBuffer(Node*& ptr, const std::vector<Command>& commands);
     void insert(int line, std::vector<Command>& commands);
     explicit PieceTable(const std::vector<Command>& commands);
     PieceTable();

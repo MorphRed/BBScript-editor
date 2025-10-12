@@ -9,33 +9,28 @@
 #include <string>
 #include <vector>
 
-enum class FormatType
-{
-    _ = -1,
-    s = 0,
-    i = 1,
-    I = 2,
-    b = 3,
-    B = 4
-};
-
 typedef struct
 {
-    const FormatType format;
     const int size;
 } FormatDef;
 
-typedef struct
+typedef struct ArgFormat
 {
-    int length;
+    int length_total;
     FormatDef* format_type;
-} Format;
+    static FormatDef empty;
+    static FormatDef string;
+    static FormatDef integer;
+    static FormatDef u_integer;
+    static FormatDef byte;
+    static FormatDef u_byte;
+} ArgFormat;
 
 typedef struct
 {
     int cmd_id;
     std::string str_id;
-    std::vector<Format> formats;
+    std::vector<ArgFormat> format;
     std::optional<std::string> name;
     int size;
 } Id;

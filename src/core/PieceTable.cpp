@@ -15,13 +15,12 @@ Node::Node(const int buffer_index, const int start, const int length)
     left = right = parent = nullptr;
 }
 
-PieceTable::PieceTable(const std::vector<Command>& commands)
+PieceTable::PieceTable(const std::vector<Command>& commands) : buffers({commands})
 {
     root = new Node(0, 0, static_cast<int>(commands.size()));
-    buffers = {{commands}};
 }
 
-PieceTable::PieceTable()
+PieceTable::PieceTable() : buffers({})
 {
     root = nullptr;
 }
@@ -47,6 +46,7 @@ void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
     if (target == nullptr)
     {
         target = insert;
+        fixInsertRBTree(insert);
         return;
     }
 
@@ -63,10 +63,11 @@ void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
     }
     else
     {
-        split_buffer = new Node(target->buffer_index, pos, target->length - pos);
+        auto split_buffer = new Node(target->buffer_index, pos, target->length - pos);
         target->length = pos;
         insertBST(target->right, 0, insert);
         target->right->parent = target;
+        insertBST(root, pos, split_buffer);
     }
 }
 
@@ -74,13 +75,6 @@ void PieceTable::insertValue(const int pos, const int buffer_index, const int st
 {
     auto node = new Node(buffer_index, start, length);
     insertBST(root, pos, node);
-    fixInsertRBTree(node);
-    if (split_buffer != nullptr)
-    {
-        insertBST(node, node->length, split_buffer);
-        fixInsertRBTree(split_buffer);
-        split_buffer = nullptr;
-    }
 }
 
 void PieceTable::updateParentSubtreeLen(Node*& ptr, const int length)
@@ -384,9 +378,10 @@ int PieceTable::getBlackHeight(Node* node)
     return black_height;
 }
 
-void PieceTable::appendToBuffer(Node*& ptr, std::vector<Command>& commands)
+void PieceTable::appendToBuffer(Node*& ptr, const std::vector<Command>& commands)
 {
-    buffers.at(ptr->buffer_index).insert(buffers.at(ptr->buffer_index).end(), commands.begin(), commands.end());
+    for (const auto& command : commands)
+        buffers.at(ptr->buffer_index).push_back(command);
     ptr->length += static_cast<int>(commands.size());
 }
 
@@ -395,3 +390,6 @@ void PieceTable::insert(const int line, std::vector<Command>& commands)
     insertValue(line, static_cast<int>(buffers.size()), 0, static_cast<int>(commands.size()));
     buffers.emplace_back(commands);
 }
+
+// One function to access a specific line
+// One function to get several lines at the same time

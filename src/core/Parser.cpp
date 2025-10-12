@@ -14,20 +14,13 @@
 
 using json = nlohmann::json;
 
-static FormatDef empty{FormatType::_, 0};
-static FormatDef string{FormatType::s, 1};
-static FormatDef integer{FormatType::i, 4};
-static FormatDef u_integer{FormatType::I, 4};
-static FormatDef byte{FormatType::b, 1};
-static FormatDef u_byte{FormatType::B, 1};
-
-std::vector<Format> Parser::fmt_parse(const std::string& fmt)
+std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt)
 {
-    std::vector<Format> formats;
+    std::vector<ArgFormat> format;
     if (fmt.empty())
     {
-        formats.push_back({0, &empty});
-        return formats;
+        format.push_back({0, &ArgFormat::empty});
+        return format;
     }
     int fmt_size;
     int start = 0;
@@ -40,39 +33,39 @@ std::vector<Format> Parser::fmt_parse(const std::string& fmt)
                 std::from_chars(&fmt[start], &fmt[i], fmt_size);
             start = i + 1;
             if (fmt[i] == 's')
-                formats.push_back({fmt_size, &string});
+                format.push_back({fmt_size, &ArgFormat::string});
             else
             {
-                FormatDef* format;
+                FormatDef* arg_format;
                 switch (fmt[i])
                 {
                 case 'i':
-                    format = &integer;
+                    arg_format = &ArgFormat::integer;
                     break;
                 case 'I':
-                    format = &u_integer;
+                    arg_format = &ArgFormat::u_integer;
                     break;
                 case 'b':
-                    format = &byte;
+                    arg_format = &ArgFormat::byte;
                     break;
                 case 'B':
-                    format = &u_byte;
+                    arg_format = &ArgFormat::u_byte;
                     break;
                 default:
                     throw std::runtime_error("Invalid format");
                 }
                 for (int j = 0; j < fmt_size; j++)
-                    formats.push_back({1, format});
+                    format.push_back({arg_format->size, arg_format});
             }
         }
-    return formats;
+    return format;
 }
 
 Parser::Parser(const std::string& game)
 {
     this->game = game;
     int dirname_length, path_len;
-    path_len = wai_getExecutablePath(NULL, 0, NULL);
+    path_len = wai_getExecutablePath(nullptr, 0, nullptr);
     auto path_c = static_cast<char*>(malloc(path_len + 1));
     wai_getExecutablePath(path_c, path_len, &dirname_length);
     path_c[dirname_length] = '\0';
@@ -85,20 +78,18 @@ Parser::Parser(const std::string& game)
     {
         int cmd_id;
         std::from_chars(key.data(), key.data() + key.size(), cmd_id);
-        std::vector<Format> formats;
+        std::vector<ArgFormat> formats;
         int size = 0;
         if (value.contains("format"))
         {
-            std::string str_fmt;
-            str_fmt = value["format"];
-            formats = fmt_parse(str_fmt);
+            formats = fmt_parse(value["format"]);
             for (auto [length, format_type] : formats)
-                size += length * format_type->size;
+                size += length;
         }
         else if (value.contains("size"))
         {
             size = value["size"];
-            formats = {{size, &string}};
+            formats = {{size, &ArgFormat::string}};
         }
         else
             throw std::runtime_error{"No format or given for " + key};
@@ -116,7 +107,7 @@ Parser::Parser(const std::string& game)
     // TODO alias files
 }
 
-Editor Parser::register_file(std::ifstream& file)
+void Parser::register_file(std::ifstream& file)
 {
     std::vector<char> bytes{};
     bytes.reserve(256);
@@ -141,10 +132,10 @@ Editor Parser::register_file(std::ifstream& file)
     {
         const int cmd_id = read_file_int();
         std::vector<char> byte_arguments;
-        Id* id = &cmd_id_db.at(cmd_id);
-        read_file(id->size);
+        Id& id = cmd_id_db.at(cmd_id);
+        read_file(id.size);
         byte_arguments = bytes;
         commands.emplace_back(id, byte_arguments);
     }
-    return Editor{commands};
+    editors.emplace_back(commands);
 }
