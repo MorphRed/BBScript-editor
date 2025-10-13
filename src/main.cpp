@@ -1,5 +1,5 @@
 #include <iostream>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 
 #include "core/Editor.h"
@@ -25,7 +25,7 @@ std::string debug(const std::vector<std::vector<std::string>>& arguments)
 
 int main(int argc, char* argv[])
 {
-    const QGuiApplication app(argc, argv);
+    const QApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
     QObject::connect(
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("bbscript_editor", "Main");
 
-    return QGuiApplication::exec();
+    return QApplication::exec();
     std::string in{"../scr_tm.bin"};
     
     const std::string game{"BBCF"};

@@ -8,7 +8,10 @@ set(CMAKE_AUTOUIC ON)
 
 include_directories(depends)
 
-find_package(Qt6 COMPONENTS REQUIRED Quick)
+find_package(Qt6 COMPONENTS REQUIRED 
+        Core
+        Widgets
+        Quick)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -36,8 +39,10 @@ qt_add_qml_module(app-bbscript-editor
 
 target_include_directories(app-bbscript-editor PRIVATE depends)
 
-target_link_libraries(app-bbscript-editor
-    PRIVATE Qt6::Quick
+target_link_libraries(app-bbscript-editor PRIVATE 
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Quick
 )
 
 file(COPY res/static_db DESTINATION ${CMAKE_BINARY_DIR})
