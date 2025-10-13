@@ -4,8 +4,7 @@
 
 #include "Command.h"
 
-#include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <stdexcept>
 
 Command::Command(const Id& id, const std::vector<char>& byte_arguments) : id(id)
