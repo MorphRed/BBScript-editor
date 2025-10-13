@@ -1,5 +1,7 @@
-import QtQuick
+import QtCore
+import QtQuick 2.15
 import QtQuick.Controls
+import QtQuick.Dialogs
 
 ApplicationWindow {
     width: 640
@@ -8,25 +10,34 @@ ApplicationWindow {
     title: qsTr("Hello World")
     
     menuBar: MenuBar {
+        FileDialog {
+            id: fileDialog
+            currentFolder: StandardPaths.standardLocations()
+        }
         Menu {
+            id: menu
             title: qsTr("&File")
-            Action { text: qsTr("&New...") }
-            Action { text: qsTr("&Open...") }
-            Action { text: qsTr("&Save") }
-            Action { text: qsTr("Save &As...") }
+            MenuItem { text: qsTr("&New...") }
+            MenuItem { 
+                text: qsTr("&Open...")
+                onTriggered: fileDialog.open()
+            }
+            MenuItem { text: qsTr("&Save") }
+            MenuItem { text: qsTr("Save &As...") }
             MenuSeparator { }
-            Action { text: qsTr("&Quit") }
+            MenuItem { text: qsTr("&Quit") }
         }
         Menu {
             title: qsTr("&Edit")
-            Action { text: qsTr("Cu&t") }
-            Action { text: qsTr("&Copy") }
-            Action { text: qsTr("&Paste") }
+            MenuItem { text: qsTr("Cu&t") }
+            MenuItem { text: qsTr("&Copy") }
+            MenuItem { text: qsTr("&Paste") }
         }
         Menu {
             title: qsTr("&Help")
-            Action { text: qsTr("&About") }
+            MenuItem { text: qsTr("&About") }
         }
     }
+    
 }
 
