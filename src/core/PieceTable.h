@@ -31,18 +31,22 @@ protected:
     void fixDeleteRBTree(Node*&);
     static int getColor(Node*&);
     static void setColor(Node*&, int);
+    static Node* getNode(Node* target, int& pos);
+    static Node* getNextNode(Node* target);
     static Node* minValueNode(Node*&);
     static Node* maxValueNode(Node*&);
     static void updateParentSubtreeLen(Node*& ptr, int length);
-    void insertBST(Node*&, int pos, Node*&);
+    void insertBST(Node*&, int pos, Node*);
     static Node* deleteBST(Node*&, int);
     static int getBlackHeight(Node*);
     void insertValue(int pos, int buffer_index, int start, int length);
     void deleteValue(int);
 
 public:
-    void appendToBuffer(Node*& ptr, const std::vector<Command>& commands);
-    void insert(int line, std::vector<Command>& commands);
+    void appendToBuffer(Node* ptr, const std::vector<Command>& commands);
+    void insert(int pos, std::vector<Command>& commands);
+    std::vector<std::vector<std::string>> getText(int pos, int length);
+    std::vector<std::string> getText(int pos);
     explicit PieceTable(const std::vector<Command>& commands);
     PieceTable();
 };

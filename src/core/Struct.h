@@ -9,21 +9,21 @@
 #include <string>
 #include <vector>
 
-typedef struct
+typedef struct FormatDef
 {
     const int size;
-} FormatDef;
-
-typedef struct ArgFormat
-{
-    int length_total;
-    FormatDef* format_type;
     static FormatDef empty;
     static FormatDef string;
     static FormatDef integer;
     static FormatDef u_integer;
     static FormatDef byte;
     static FormatDef u_byte;
+} FormatDef;
+
+typedef struct
+{
+    int length_total;
+    FormatDef* format_type;
 } ArgFormat;
 
 typedef struct

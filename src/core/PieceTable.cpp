@@ -41,22 +41,67 @@ void PieceTable::setColor(Node*& node, const int color)
     node->color = color;
 }
 
-void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
+Node* PieceTable::getNode(Node* target, int& pos)
+{
+    while (true)
+    {
+        if (pos < target->left_subtree_length)
+        {
+            target = target->left;
+        }
+        else if (pos >= target->left_subtree_length + target->length)
+        {
+            pos -= target->left_subtree_length;
+            target = target->right;
+        }
+        else
+            return target;
+    }
+}
+
+Node* PieceTable::getNextNode(Node* target)
+{
+    // I can optimize this. But it should work rn.
+    if (target->right != nullptr)
+    {
+        target = target->right;
+        while (target->left != nullptr)
+        {
+            target = target->left;
+        }
+        return target;
+    }
+    if (target->parent == nullptr)
+        return nullptr;
+    if (target->parent->right == target)
+    {
+        while (true)
+        {
+            if (target->parent == nullptr)
+                return nullptr;
+            if (target->parent->left == target)
+                return target->parent;
+            target = target->parent;
+        }
+    }
+    return target->parent;
+}
+
+void PieceTable::insertBST(Node*& target, const int pos, Node* insert)
 {
     if (target == nullptr)
     {
         target = insert;
-        fixInsertRBTree(insert);
         return;
     }
 
-    if (pos < target->left_subtree_length)
+    if (pos <= target->left_subtree_length)
     {
         target->left_subtree_length += insert->length;
         insertBST(target->left, pos, insert);
         target->left->parent = target;
     }
-    else if (pos >= target->left_subtree_length + insert->length)
+    else if (pos >= target->left_subtree_length + target->length)
     {
         insertBST(target->right, pos - target->left_subtree_length, insert);
         target->right->parent = target;
@@ -64,10 +109,11 @@ void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
     else
     {
         auto split_buffer = new Node(target->buffer_index, pos, target->length - pos);
-        target->length = pos;
+        target->length = pos - target->start;
+        insertBST(target->right, pos, split_buffer);
+        fixInsertRBTree(split_buffer);
         insertBST(target->right, 0, insert);
         target->right->parent = target;
-        insertBST(root, pos, split_buffer);
     }
 }
 
@@ -75,6 +121,7 @@ void PieceTable::insertValue(const int pos, const int buffer_index, const int st
 {
     auto node = new Node(buffer_index, start, length);
     insertBST(root, pos, node);
+    fixInsertRBTree(node);
 }
 
 void PieceTable::updateParentSubtreeLen(Node*& ptr, const int length)
@@ -378,18 +425,44 @@ int PieceTable::getBlackHeight(Node* node)
     return black_height;
 }
 
-void PieceTable::appendToBuffer(Node*& ptr, const std::vector<Command>& commands)
+// I haven't searched how to check for the end of the buffer so this function is never reached
+void PieceTable::appendToBuffer(Node* ptr, const std::vector<Command>& commands)
 {
     for (const auto& command : commands)
         buffers.at(ptr->buffer_index).push_back(command);
     ptr->length += static_cast<int>(commands.size());
 }
 
-void PieceTable::insert(const int line, std::vector<Command>& commands)
+// Like vim insert, at the start of the given pos
+void PieceTable::insert(const int pos, std::vector<Command>& commands)
 {
-    insertValue(line, static_cast<int>(buffers.size()), 0, static_cast<int>(commands.size()));
+    insertValue(pos, static_cast<int>(buffers.size()), 0, static_cast<int>(commands.size()));
     buffers.emplace_back(commands);
 }
 
-// One function to access a specific line
-// One function to get several lines at the same time
+std::vector<std::vector<std::string>> PieceTable::getText(int pos, int length)
+{
+    std::vector<std::vector<std::string>> output{};
+    auto node = getNode(root, pos);
+    while (length > 0)
+    {
+        const int node_length = (node->length < length) ? node->length : length;
+        for (const int node_end = node_length + pos; pos < node_end; pos++)
+        {
+            output.emplace_back(buffers.at(node->buffer_index).at(pos).getText());
+        }
+        length -= node_length;
+        if (length > 0)
+        {
+            node = getNextNode(node);
+            pos = node->start;
+        }
+    }
+    return output;
+}
+
+std::vector<std::string> PieceTable::getText(const int pos)
+{
+    return getText(pos, 1).at(0);
+}
+

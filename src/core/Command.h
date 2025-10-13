@@ -15,8 +15,8 @@ class Command
     std::vector<char> byte_arguments;
 
 public:
-    Command(const Id& id, std::vector<char>& byte_arguments);
-    std::optional<std::vector<std::string>> getText();
+    Command(const Id& id, const std::vector<char>& byte_arguments);
+    std::vector<std::string> getText();
 };
 
 

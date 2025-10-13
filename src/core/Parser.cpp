@@ -19,7 +19,7 @@ std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt)
     std::vector<ArgFormat> format;
     if (fmt.empty())
     {
-        format.push_back({0, &ArgFormat::empty});
+        format.push_back({0, &FormatDef::empty});
         return format;
     }
     int fmt_size;
@@ -33,23 +33,23 @@ std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt)
                 std::from_chars(&fmt[start], &fmt[i], fmt_size);
             start = i + 1;
             if (fmt[i] == 's')
-                format.push_back({fmt_size, &ArgFormat::string});
+                format.push_back({fmt_size, &FormatDef::string});
             else
             {
                 FormatDef* arg_format;
                 switch (fmt[i])
                 {
                 case 'i':
-                    arg_format = &ArgFormat::integer;
+                    arg_format = &FormatDef::integer;
                     break;
                 case 'I':
-                    arg_format = &ArgFormat::u_integer;
+                    arg_format = &FormatDef::u_integer;
                     break;
                 case 'b':
-                    arg_format = &ArgFormat::byte;
+                    arg_format = &FormatDef::byte;
                     break;
                 case 'B':
-                    arg_format = &ArgFormat::u_byte;
+                    arg_format = &FormatDef::u_byte;
                     break;
                 default:
                     throw std::runtime_error("Invalid format");
@@ -89,7 +89,7 @@ Parser::Parser(const std::string& game)
         else if (value.contains("size"))
         {
             size = value["size"];
-            formats = {{size, &ArgFormat::string}};
+            formats = {{size, &FormatDef::string}};
         }
         else
             throw std::runtime_error{"No format or given for " + key};
@@ -107,8 +107,13 @@ Parser::Parser(const std::string& game)
     // TODO alias files
 }
 
-void Parser::register_file(std::ifstream& file)
+std::vector<Command> Parser::register_file(std::string& in)
 {
+    std::ifstream file{in.c_str(), std::ios::in | std::ios::binary};
+    if (!file)
+    {
+        throw std::istream::failure("Could not open file");
+    }
     std::vector<char> bytes{};
     bytes.reserve(256);
     auto read_file_int = [&file]()
@@ -137,5 +142,5 @@ void Parser::register_file(std::ifstream& file)
         byte_arguments = bytes;
         commands.emplace_back(id, byte_arguments);
     }
-    editors.emplace_back(commands);
+    return commands;
 }

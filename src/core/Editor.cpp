@@ -5,8 +5,13 @@
 #include "Editor.h"
 
 
-Editor::Editor(const std::vector<Command>& commands) : piece_table(commands)
+Editor::Editor(Parser& parser) : parser(parser)
 {
+}
+
+void Editor::parse(std::string& in)
+{
+    piece_table = PieceTable{parser.register_file(in)};
 }
 
 void Editor::insert(const int line, std::vector<Command>& commands)
@@ -14,5 +19,13 @@ void Editor::insert(const int line, std::vector<Command>& commands)
     piece_table.insert(line, commands);
 }
 
-// std::optional<std::vector<std::string>> Editor::getText()
+std::vector<std::vector<std::string>> Editor::getText(const int pos, const int length)
+{
+    return piece_table.getText(pos, length);
+};
+
+std::vector<std::string> Editor::getText(const int pos)
+{
+    return piece_table.getText(pos);
+}
 
