@@ -1,14 +1,14 @@
 //
 // Red Black Tree Implementation
 //
-#include <bits/stdc++.h>
+
 #include "PieceTable.h"
 
-using namespace std;
+#include <iostream>
 
-Node::Node(const int buffer_index, const int start, const int length)
+Node::Node(const BufferIndex index, const int start, const int length)
 {
-    this->buffer_index = buffer_index;
+    this->index = index;
     this->start = start;
     this->length = length;
     color = RED;
@@ -17,12 +17,15 @@ Node::Node(const int buffer_index, const int start, const int length)
 
 PieceTable::PieceTable(const std::vector<Command>& commands) : buffers({commands})
 {
-    root = new Node(0, 0, static_cast<int>(commands.size()));
+    root = new Node(ORIGINAL, 0, static_cast<int>(commands.size()));
+    root->color = BLACK;
+    buffers.push_back({});
 }
 
 PieceTable::PieceTable() : buffers({})
 {
     root = nullptr;
+    buffers.push_back({});
 }
 
 int PieceTable::getColor(Node*& node)
@@ -61,7 +64,6 @@ Node* PieceTable::getNode(Node* target, int& pos)
 
 Node* PieceTable::getNextNode(Node* target)
 {
-    // I can optimize this. But it should work rn.
     if (target->right != nullptr)
     {
         target = target->right;
@@ -108,25 +110,30 @@ void PieceTable::insertBST(Node*& target, const int pos, Node* insert)
     }
     else
     {
-        auto split_buffer = new Node(target->buffer_index, pos, target->length - pos);
+        split_buffer = new Node(target->index, pos, target->length - pos);
         target->length = pos - target->start;
-        insertBST(target->right, pos, split_buffer);
-        fixInsertRBTree(split_buffer);
         insertBST(target->right, 0, insert);
         target->right->parent = target;
     }
 }
 
-void PieceTable::insertValue(const int pos, const int buffer_index, const int start, const int length)
+void PieceTable::insertValue(const int pos, const int start, const int length)
 {
-    auto node = new Node(buffer_index, start, length);
+    auto node = new Node(APPEND, start, length);
     insertBST(root, pos, node);
+    // TODO fix some sort of bug about left subtree length
     fixInsertRBTree(node);
+    if (split_buffer != nullptr)
+    {
+        insertBST(root, pos + node->length, split_buffer);
+        fixInsertRBTree(split_buffer);
+        split_buffer = nullptr;
+    }
 }
 
-void PieceTable::updateParentSubtreeLen(Node*& ptr, const int length)
+void PieceTable::updateParentSubtreeLen(const Node* ptr, const int length)
 {
-    auto parent = ptr->parent;
+    const auto parent = ptr->parent;
     if (parent == nullptr)
         return;
     if (parent->left == ptr)
@@ -205,7 +212,7 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
                     parent = ptr->parent;
                 }
                 rotateRight(grandparent);
-                swap(parent->color, grandparent->color);
+                std::swap(parent->color, grandparent->color);
                 ptr = parent;
             }
         }
@@ -227,7 +234,7 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
                     parent = ptr->parent;
                 }
                 rotateLeft(grandparent);
-                swap(parent->color, grandparent->color);
+                std::swap(parent->color, grandparent->color);
                 ptr = parent;
             }
         }
@@ -362,6 +369,7 @@ void PieceTable::fixDeleteRBTree(Node*& node)
 
 Node* PieceTable::deleteBST(Node*& root, int pos)
 {
+    // TODO
     return nullptr;
     // if (root == nullptr)
     //     return root;
@@ -387,7 +395,7 @@ Node* PieceTable::deleteBST(Node*& root, int pos)
 
 void PieceTable::deleteValue(int data)
 {
-    // Currently no plan to delete values in the piece table so idk
+    // TODO
     return;
     Node* node = deleteBST(root, data);
     fixDeleteRBTree(node);
@@ -429,27 +437,28 @@ int PieceTable::getBlackHeight(Node* node)
 void PieceTable::appendToBuffer(Node* ptr, const std::vector<Command>& commands)
 {
     for (const auto& command : commands)
-        buffers.at(ptr->buffer_index).push_back(command);
+        buffers.at(ptr->index).push_back(command);
     ptr->length += static_cast<int>(commands.size());
 }
 
 // Like vim insert, at the start of the given pos
-void PieceTable::insert(const int pos, std::vector<Command>& commands)
+void PieceTable::insert(const int pos, const std::vector<Command>& commands)
 {
-    insertValue(pos, static_cast<int>(buffers.size()), 0, static_cast<int>(commands.size()));
-    buffers.emplace_back(commands);
+    insertValue(pos, buffers.at(APPEND).size(), static_cast<int>(commands.size()));
+    for (const auto& command : commands)
+        buffers.at(APPEND).emplace_back(command);
 }
 
-std::vector<std::vector<std::string>> PieceTable::getText(int pos, int length)
+std::vector<Command*> PieceTable::getCommand(int pos, int length)
 {
-    std::vector<std::vector<std::string>> output{};
+    std::vector<Command*> output;
     auto node = getNode(root, pos);
     while (length > 0)
     {
         const int node_length = (node->length < length) ? node->length : length;
         for (const int node_end = node_length + pos; pos < node_end; pos++)
         {
-            output.emplace_back(buffers.at(node->buffer_index).at(pos).getText());
+            output.emplace_back(&buffers.at(node->index).at(pos));
         }
         length -= node_length;
         if (length > 0)
@@ -461,8 +470,14 @@ std::vector<std::vector<std::string>> PieceTable::getText(int pos, int length)
     return output;
 }
 
-std::vector<std::string> PieceTable::getText(const int pos)
+void PieceTable::debug()
 {
-    return getText(pos, 1).at(0);
+    Node* node = root;
+    while (node->left != nullptr)
+        node = node->left;
+    do
+    {
+        std::cout << node->left_subtree_length << std::endl;
+        node = getNextNode(node);
+    } while (node != nullptr);
 }
-

@@ -14,48 +14,71 @@
 
 using json = nlohmann::json;
 
-std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt)
+std::string debug_parser(const std::vector<std::string>& arguments)
+{
+    std::string result;
+    for (const auto& argument : arguments)
+    {
+        result += " " + argument;
+    }
+    return result;
+};
+
+std::string debug_parser(const std::vector<std::vector<std::string>>& arguments)
+{
+    std::string result;
+    for (const auto& argument : arguments)
+        result += "\n" + debug_parser(argument);
+    return result;
+};
+
+std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt_txt)
 {
     std::vector<ArgFormat> format;
-    if (fmt.empty())
+    if (fmt_txt.empty())
     {
-        format.push_back({0, &FormatDef::empty});
+        const FormatDef fmt{FormatDef::empty};
+        format.emplace_back(0, fmt);
         return format;
     }
-    int fmt_size;
+    int fmt_length;
     int start = 0;
-    for (int i = 0; i < fmt.size(); i++)
-        if (std::isalpha(fmt[i]))
+    for (int i = 0; i < fmt_txt.size(); i++)
+        if (std::isalpha(fmt_txt[i]))
         {
             if (start == i)
-                fmt_size = 1;
+                fmt_length = 1;
             else
-                std::from_chars(&fmt[start], &fmt[i], fmt_size);
+                std::from_chars(&fmt_txt[start], &fmt_txt[i], fmt_length);
             start = i + 1;
-            if (fmt[i] == 's')
-                format.push_back({fmt_size, &FormatDef::string});
+            if (fmt_txt[i] == 's')
+            {
+                const FormatDef fmt{FormatDef::string};
+                format.push_back({fmt_length, fmt});
+            }
             else
             {
-                FormatDef* arg_format;
-                switch (fmt[i])
+                FormatDef::Type fmt_type;
+                switch (fmt_txt[i])
                 {
                 case 'i':
-                    arg_format = &FormatDef::integer;
+                    fmt_type = FormatDef::integer;
                     break;
                 case 'I':
-                    arg_format = &FormatDef::u_integer;
+                    fmt_type = FormatDef::u_integer;
                     break;
                 case 'b':
-                    arg_format = &FormatDef::byte;
+                    fmt_type = FormatDef::byte;
                     break;
                 case 'B':
-                    arg_format = &FormatDef::u_byte;
+                    fmt_type = FormatDef::u_byte;
                     break;
                 default:
                     throw std::runtime_error("Invalid format");
                 }
-                for (int j = 0; j < fmt_size; j++)
-                    format.push_back({arg_format->size, arg_format});
+                const FormatDef fmt{fmt_type};
+                for (int j = 0; j < fmt_length; j++)
+                    format.push_back({fmt.size, fmt});
             }
         }
     return format;
@@ -71,7 +94,7 @@ Parser::Parser(const std::string& game)
     path_c[dirname_length] = '\0';
     std::string path = static_cast<std::string>(path_c) + "/static_db/" + game + "/";
     free(path_c);
-    
+
     auto command_json = json::parse(std::ifstream{path + "command_db.json"});
     auto function_json = json::parse(std::ifstream{path + "function_db.json"});
     for (auto& [key, value] : command_json.items())
@@ -89,7 +112,8 @@ Parser::Parser(const std::string& game)
         else if (value.contains("size"))
         {
             size = value["size"];
-            formats = {{size, &FormatDef::string}};
+            const FormatDef fmt{FormatDef::string};
+            formats.emplace_back(size, fmt);
         }
         else
             throw std::runtime_error{"No format or given for " + key};
@@ -107,14 +131,14 @@ Parser::Parser(const std::string& game)
     // TODO alias files
 }
 
-std::vector<Command> Parser::register_file(std::string& in)
+std::vector<Command> Parser::register_file(const std::string& in)
 {
     std::ifstream file{in.c_str(), std::ios::in | std::ios::binary};
     if (!file)
     {
         throw std::istream::failure("Could not open file");
     }
-    std::vector<char> bytes{};
+    std::vector<char> bytes;
     bytes.reserve(256);
     auto read_file_int = [&file]()
     {
@@ -122,25 +146,45 @@ std::vector<Command> Parser::register_file(std::string& in)
         file.read(tmp, 4);
         return *reinterpret_cast<int*>(tmp);
     };
-    auto read_file = [&bytes, &file](const int size)
+    auto read_file = [&file](Id& id)
     {
         // We will assume little endian because there is no way Arcsys has/uses processors with big endian
-        bytes.clear();
-        bytes.resize(size);
-        file.read(bytes.data(), size);
+        std::vector<std::string> arguments;
+        for (auto [length_total, format] : id.formats)
+        {
+            if (format.type == FormatDef::empty)
+                return std::vector<std::string>{""};
+            char tmp[length_total];
+            file.read(tmp, sizeof(tmp));
+            switch (format.type)
+            {
+            case FormatDef::string:
+                arguments.push_back(tmp);
+                break;
+            case FormatDef::integer:
+                arguments.emplace_back(std::to_string(*reinterpret_cast<int*>(tmp)));
+                break;
+            case FormatDef::u_integer:
+                arguments.emplace_back(std::to_string(*reinterpret_cast<unsigned int*>(tmp)));
+                break;
+            default:
+                throw std::runtime_error("Unsupported format");
+            }
+        }
+        return arguments;
     };
+    file.seekg(0, std::ios::end);
+    int end = file.tellg();
     file.seekg(0, std::ios::beg);
     const int FUNCTION_COUNT = read_file_int();
     file.seekg(4 + 0x24 * FUNCTION_COUNT);
-    std::vector<Command> commands{};
-    while (!file.eof())
+
+    std::vector<Command> commands;
+    while (file.tellg() < end)
     {
-        const int cmd_id = read_file_int();
-        std::vector<char> byte_arguments;
-        Id& id = cmd_id_db.at(cmd_id);
-        read_file(id.size);
-        byte_arguments = bytes;
-        commands.emplace_back(id, byte_arguments);
+        Id& id = cmd_id_db.at(read_file_int());
+        commands.emplace_back(id, read_file(id));
+        auto var = debug_parser(commands.back().arguments);
     }
     return commands;
 }

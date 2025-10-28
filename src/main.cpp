@@ -2,30 +2,14 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 
-#include "core/Editor.h"
-#include "core/Parser.h"
-
-std::string debug(const std::vector<std::string>& arguments)
-{
-    std::string result;
-    for (const auto& argument : arguments)
-    {
-        result += " " + argument;
-    }
-    return result;
-};
-
-std::string debug(const std::vector<std::vector<std::string>>& arguments)
-{
-    std::string result;
-    for (const auto& argument : arguments)
-        result += "\n" + debug(argument);
-    return result;
-};
+#include "CommandQML.h"
+#include "Editor.h"
+#include "Parser.h"
 
 int main(int argc, char* argv[])
 {
     const QApplication app(argc, argv);
+    CommandQML command;
 
     QQmlApplicationEngine engine;
     QObject::connect(
@@ -36,25 +20,25 @@ int main(int argc, char* argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("bbscript_editor", "Main");
 
-    return QApplication::exec();
+    // return QApplication::exec();
     std::string in{"../scr_tm.bin"};
     
     const std::string game{"BBCF"};
-    // Parser parser{game};
-    // Editor editor{parser};
-    // editor.parse(in);
-    // std::vector<Command> test_cmd = {{parser.cmd_id_db.at(4), {0, 0, 0, 0, 0, 0, 0, 0}}};
-    //
-    // editor.insert(1, test_cmd);
-    // editor.insert(3, test_cmd);
-    // editor.insert(10, test_cmd);
-    // auto line = editor.getText(0, 20);
-    // auto output = debug(line);
-    // std::cout << output << std::endl;
+    Parser parser{game};
+    Editor editor{parser};
+    editor.parse(in);
+    std::vector<Command> test1 = {{parser.cmd_id_db.at(4), {"1", "1"}}};
+    std::vector<Command> test2 = {{parser.cmd_id_db.at(4), {"2", "2"}}};
+    std::vector<Command> test3 = {{parser.cmd_id_db.at(4), {"3", "3"}}};
     
-    // QApplication a(argc, argv);
-    // QPushButton button("Hello world!", nullptr);
-    // button.resize(200, 100);
-    // button.show();
-    // return QApplication::exec();
+    editor.insert(1, test1);
+    editor.insert(3, test2);
+    editor.insert(10, test3);
+    editor.insert(10, test3);
+    
+    // auto line = editor.getText(0, 20);
+    // auto output = debug_parser(line);
+    // std::cout << output << std::endl;
+
+    editor.piece_table.debug();
 }

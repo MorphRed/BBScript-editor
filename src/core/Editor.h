@@ -12,14 +12,14 @@
 class Editor
 {
     Parser& parser;
-    PieceTable piece_table;
 
 public:
+    PieceTable piece_table;
     explicit Editor(Parser& parser);
-    void parse(std::string& in);
-    void insert(int line, std::vector<Command>& commands);
+    void parse(const std::string& in);
+    void insert(int index, std::vector<Command>& commands);
     std::vector<std::vector<std::string>> getText(int pos, int length);
-    std::vector<std::string> getText(int pos);
+    std::vector<std::vector<std::string>> getText(int pos);
 };
 
 

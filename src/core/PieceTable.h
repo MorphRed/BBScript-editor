@@ -9,14 +9,21 @@
 
 enum Color { RED, BLACK, DOUBLE_BLACK };
 
+enum BufferIndex
+{
+    ORIGINAL,
+    APPEND
+};
+
 struct Node
 {
-    int buffer_index, start, length;
+    BufferIndex index;
+    int start, length;
     int color;
     Node *left, *right, *parent;
     int left_subtree_length = 0;
 
-    Node(int, int, int);
+    Node(BufferIndex, int, int);
 };
 
 class PieceTable
@@ -24,6 +31,7 @@ class PieceTable
 protected:
     std::vector<std::vector<Command>> buffers;
     Node* root;
+    Node* split_buffer = nullptr;
 
     void rotateLeft(Node*&);
     void rotateRight(Node*&);
@@ -35,18 +43,18 @@ protected:
     static Node* getNextNode(Node* target);
     static Node* minValueNode(Node*&);
     static Node* maxValueNode(Node*&);
-    static void updateParentSubtreeLen(Node*& ptr, int length);
+    static void updateParentSubtreeLen(const Node* ptr, int length);
     void insertBST(Node*&, int pos, Node*);
     static Node* deleteBST(Node*&, int);
     static int getBlackHeight(Node*);
-    void insertValue(int pos, int buffer_index, int start, int length);
+    void insertValue(int pos, int start, int length);
     void deleteValue(int);
 
 public:
     void appendToBuffer(Node* ptr, const std::vector<Command>& commands);
-    void insert(int pos, std::vector<Command>& commands);
-    std::vector<std::vector<std::string>> getText(int pos, int length);
-    std::vector<std::string> getText(int pos);
+    void insert(int pos, const std::vector<Command>& commands);
+    std::vector<Command*> getCommand(int pos, int length);
+    void debug();
     explicit PieceTable(const std::vector<Command>& commands);
     PieceTable();
 };
