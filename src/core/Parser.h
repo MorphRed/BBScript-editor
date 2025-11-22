@@ -5,7 +5,6 @@
 #ifndef BBSCRIPT_EDITOR_BLOCK_H
 #define BBSCRIPT_EDITOR_BLOCK_H
 
-#include <fstream>
 #include <unordered_map>
 #include <vector>
 #include "Command.h"

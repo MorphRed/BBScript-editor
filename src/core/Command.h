@@ -64,7 +64,7 @@ struct Id
 
 struct Command
 {
-    const Id& id;
+    Id& id;
     std::vector<std::string> arguments;
 };
 

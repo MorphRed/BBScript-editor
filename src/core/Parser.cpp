@@ -6,7 +6,7 @@
 
 #include <charconv>
 #include <format>
-#include <iostream>
+#include <fstream>
 #include <vector>
 
 #include "nlohmann/json.hpp"
@@ -87,14 +87,16 @@ std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt_txt)
 Parser::Parser(const std::string& game)
 {
     this->game = game;
-    int dirname_length, path_len;
-    path_len = wai_getExecutablePath(nullptr, 0, nullptr);
-    auto path_c = static_cast<char*>(malloc(path_len + 1));
-    wai_getExecutablePath(path_c, path_len, &dirname_length);
-    path_c[dirname_length] = '\0';
-    std::string path = static_cast<std::string>(path_c) + "/static_db/" + game + "/";
-    free(path_c);
-
+    std::string path;
+    {
+        int dirname_length, path_len;
+        path_len = wai_getExecutablePath(nullptr, 0, nullptr);
+        auto path_c = static_cast<char*>(malloc(path_len + 1));
+        wai_getExecutablePath(path_c, path_len, &dirname_length);
+        path_c[dirname_length] = '\0';
+        path = static_cast<std::string>(path_c) + "/static_db/" + game + "/";
+        free(path_c);
+    }
     auto command_json = json::parse(std::ifstream{path + "command_db.json"});
     auto function_json = json::parse(std::ifstream{path + "function_db.json"});
     for (auto& [key, value] : command_json.items())
@@ -154,18 +156,18 @@ std::vector<Command> Parser::register_file(const std::string& in)
         {
             if (format.type == FormatDef::empty)
                 return std::vector<std::string>{""};
-            char tmp[length_total];
-            file.read(tmp, sizeof(tmp));
+            std::vector<char> tmp(length_total);
+            file.read(tmp.data(), length_total);
             switch (format.type)
             {
             case FormatDef::string:
-                arguments.push_back(tmp);
+                arguments.emplace_back(tmp.data());
                 break;
             case FormatDef::integer:
-                arguments.emplace_back(std::to_string(*reinterpret_cast<int*>(tmp)));
+                arguments.emplace_back(std::to_string(*reinterpret_cast<int*>(tmp.data())));
                 break;
             case FormatDef::u_integer:
-                arguments.emplace_back(std::to_string(*reinterpret_cast<unsigned int*>(tmp)));
+                arguments.emplace_back(std::to_string(*reinterpret_cast<unsigned int*>(tmp.data())));
                 break;
             default:
                 throw std::runtime_error("Unsupported format");

@@ -19,13 +19,13 @@ PieceTable::PieceTable(const std::vector<Command>& commands) : buffers({commands
 {
     root = new Node(ORIGINAL, 0, static_cast<int>(commands.size()));
     root->color = BLACK;
-    buffers.push_back({});
+    buffers.emplace_back();
 }
 
 PieceTable::PieceTable() : buffers({})
 {
     root = nullptr;
-    buffers.push_back({});
+    buffers.emplace_back();
 }
 
 int PieceTable::getColor(Node*& node)
@@ -36,7 +36,7 @@ int PieceTable::getColor(Node*& node)
     return node->color;
 }
 
-void PieceTable::setColor(Node*& node, const int color)
+void PieceTable::setColor(Node*& node, const Color color)
 {
     if (node == nullptr)
         return;
@@ -89,7 +89,7 @@ Node* PieceTable::getNextNode(Node* target)
     return target->parent;
 }
 
-void PieceTable::insertBST(Node*& target, const int pos, Node* insert)
+void PieceTable::insertBST(Node*& target, const int pos, Node*& insert)
 {
     if (target == nullptr)
     {
@@ -105,13 +105,20 @@ void PieceTable::insertBST(Node*& target, const int pos, Node* insert)
     }
     else if (pos >= target->left_subtree_length + target->length)
     {
-        insertBST(target->right, pos - target->left_subtree_length, insert);
+        if (target->index == insert->index && target->start + target->length == buffers[target->index].size() && pos == target->left_subtree_length + target->length)
+        {
+            target->length += insert->length;
+            free(insert);
+            insert = nullptr;
+            return;
+        }
+        insertBST(target->right, pos - target->left_subtree_length - target->length, insert);
         target->right->parent = target;
     }
     else
     {
-        split_buffer = new Node(target->index, pos, target->length - pos);
-        target->length = pos - target->start;
+        split_buffer = new Node(target->index, target->start + pos, target->length + target->start - pos);
+        target->length = pos;
         insertBST(target->right, 0, insert);
         target->right->parent = target;
     }
@@ -120,8 +127,9 @@ void PieceTable::insertBST(Node*& target, const int pos, Node* insert)
 void PieceTable::insertValue(const int pos, const int start, const int length)
 {
     auto node = new Node(APPEND, start, length);
+    // printf("insert %d[%d, %d]\n", node->index, node->start, node->length);
+    // printTree(root, 0);
     insertBST(root, pos, node);
-    // TODO fix some sort of bug about left subtree length
     fixInsertRBTree(node);
     if (split_buffer != nullptr)
     {
@@ -129,70 +137,71 @@ void PieceTable::insertValue(const int pos, const int start, const int length)
         fixInsertRBTree(split_buffer);
         split_buffer = nullptr;
     }
+    // printTree(root, 0);
 }
 
-void PieceTable::updateParentSubtreeLen(const Node* ptr, const int length)
+void PieceTable::rotateLeft(Node*& node)
 {
-    const auto parent = ptr->parent;
-    if (parent == nullptr)
-        return;
-    if (parent->left == ptr)
-        parent->left_subtree_length += length;
-    updateParentSubtreeLen(parent, length);
-}
+    // printf("left rotation %d, %d[%d, %d]\n", node->left_subtree_length, node->index, node->start, node->length);
+    // printTree(root, 0);
+    Node* right_child = node->right;
+    node->right = right_child->left;
 
-void PieceTable::rotateLeft(Node*& ptr)
-{
-    Node* right_child = ptr->right;
-    ptr->right = right_child->left;
+    right_child->parent = node->parent;
 
-    if (ptr->right != nullptr)
-        ptr->right->parent = ptr;
-
-    right_child->parent = ptr->parent;
-
-    if (ptr->parent == nullptr)
+    if (node->parent == nullptr)
         root = right_child;
-    else if (ptr == ptr->parent->left)
-        ptr->parent->left = right_child;
+    else if (node == node->parent->left)
+        node->parent->left = right_child;
     else
-        ptr->parent->right = right_child;
+        node->parent->right = right_child;
 
-    right_child->left = ptr;
-    right_child->left_subtree_length = ptr->left_subtree_length + ptr->length;
-    updateParentSubtreeLen(right_child, right_child->length);
-    ptr->parent = right_child;
+    right_child->left = node;
+    right_child->left_subtree_length = node->left_subtree_length + node->length;
+    if (node->right != nullptr)
+    {
+        node->right->parent = node;
+        right_child->left_subtree_length += node->right->length;
+    }
+    node->parent = right_child;
+    // printTree(root, 0);
 }
 
-void PieceTable::rotateRight(Node*& ptr)
+void PieceTable::rotateRight(Node*& node)
 {
-    Node* left_child = ptr->left;
-    ptr->left = left_child->right;
+    // printf("right rotation %d, %d[%d, %d]\n", node->left_subtree_length, node->index, node->start, node->length);
+    // printTree(root, 0);
+    Node* left_child = node->left;
+    node->left = left_child->right;
 
-    if (ptr->left != nullptr)
-        ptr->left->parent = ptr;
+    if (node->left != nullptr)
+        node->left->parent = node;
 
-    left_child->parent = ptr->parent;
+    left_child->parent = node->parent;
 
-    if (ptr->parent == nullptr)
+    if (node->parent == nullptr)
         root = left_child;
-    else if (ptr == ptr->parent->left)
-        ptr->parent->left = left_child;
+    else if (node == node->parent->left)
+        node->parent->left = left_child;
     else
-        ptr->parent->right = left_child;
+        node->parent->right = left_child;
 
-    left_child->right = ptr;
-    ptr->left_subtree_length = left_child->left_subtree_length + left_child->length;
-    ptr->parent = left_child;
+    left_child->right = node;
+    node->left_subtree_length -= left_child->left_subtree_length + left_child->length;
+    node->parent = left_child;
+    // printTree(root, 0);
 }
 
-void PieceTable::fixInsertRBTree(Node*& ptr)
+void PieceTable::fixInsertRBTree(Node*& node)
 {
+    if (node == nullptr)
+        return;
+    
     Node* parent = nullptr;
     Node* grandparent = nullptr;
-    while (ptr != root && getColor(ptr) == RED && getColor(ptr->parent) == RED)
+    while (node != root && getColor(node) == RED && getColor(node->parent) == RED)
     {
-        parent = ptr->parent;
+        parent = node->parent;
         grandparent = parent->parent;
         if (parent == grandparent->left)
         {
@@ -201,19 +210,19 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
                 setColor(uncle, BLACK);
                 setColor(parent, BLACK);
                 setColor(grandparent, RED);
-                ptr = grandparent;
+                node = grandparent;
             }
             else
             {
-                if (ptr == parent->right)
+                if (node == parent->right)
                 {
                     rotateLeft(parent);
-                    ptr = parent;
-                    parent = ptr->parent;
+                    node = parent;
+                    parent = node->parent;
                 }
                 rotateRight(grandparent);
                 std::swap(parent->color, grandparent->color);
-                ptr = parent;
+                node = parent;
             }
         }
         else
@@ -223,19 +232,19 @@ void PieceTable::fixInsertRBTree(Node*& ptr)
                 setColor(uncle, BLACK);
                 setColor(parent, BLACK);
                 setColor(grandparent, RED);
-                ptr = grandparent;
+                node = grandparent;
             }
             else
             {
-                if (ptr == parent->left)
+                if (node == parent->left)
                 {
                     rotateRight(parent);
-                    ptr = parent;
-                    parent = ptr->parent;
+                    node = parent;
+                    parent = node->parent;
                 }
                 rotateLeft(grandparent);
                 std::swap(parent->color, grandparent->color);
-                ptr = parent;
+                node = parent;
             }
         }
     }
@@ -367,37 +376,37 @@ void PieceTable::fixDeleteRBTree(Node*& node)
     }
 }
 
-Node* PieceTable::deleteBST(Node*& root, int pos)
+Node* PieceTable::deleteBST(Node*& node, int pos, int length)
 {
     // TODO
     return nullptr;
-    // if (root == nullptr)
-    //     return root;
+    // if (node == nullptr)
+    //     return node;
     //
     // int root_pos = 0;
-    // for (auto tmp = root; tmp != nullptr; tmp = tmp->left)
+    // for (auto tmp = node; tmp != nullptr; tmp = tmp->left)
     // {
     //     root_pos += tmp->length;
     // }
     // if (pos < root_pos)
-    //     return deleteBST(root->left, pos);
+    //     return deleteBST(node->left, pos);
     //
     // if (pos > root_pos)
-    //     return deleteBST(root->right, pos);
+    //     return deleteBST(node->right, pos);
     //
-    // if (root->left == nullptr || root->right == nullptr)
-    //     return root;
+    // if (node->left == nullptr || node->right == nullptr)
+    //     return node;
     //
-    // Node* temp = minValueNode(root->right);
-    // root->data = temp->data;
-    // return deleteBST(root->right, temp->data);
+    // Node* temp = minValueNode(node->right);
+    // node->data = temp->data;
+    // return deleteBST(node->right, temp->data);
 }
 
-void PieceTable::deleteValue(int data)
+void PieceTable::deleteValue(int pos, int length)
 {
     // TODO
     return;
-    Node* node = deleteBST(root, data);
+    Node* node = deleteBST(root, pos, length);
     fixDeleteRBTree(node);
 }
 
@@ -434,17 +443,17 @@ int PieceTable::getBlackHeight(Node* node)
 }
 
 // I haven't searched how to check for the end of the buffer so this function is never reached
-void PieceTable::appendToBuffer(Node* ptr, const std::vector<Command>& commands)
+void PieceTable::appendToBuffer(Node* node, const std::vector<Command>& commands)
 {
     for (const auto& command : commands)
-        buffers.at(ptr->index).push_back(command);
-    ptr->length += static_cast<int>(commands.size());
+        buffers.at(node->index).push_back(command);
+    node->length += static_cast<int>(commands.size());
 }
 
-// Like vim insert, at the start of the given pos
+// Like vim insert: at the start of the given pos
 void PieceTable::insert(const int pos, const std::vector<Command>& commands)
 {
-    insertValue(pos, buffers.at(APPEND).size(), static_cast<int>(commands.size()));
+    insertValue(pos, static_cast<int>(buffers.at(APPEND).size()), static_cast<int>(commands.size()));
     for (const auto& command : commands)
         buffers.at(APPEND).emplace_back(command);
 }
@@ -453,6 +462,7 @@ std::vector<Command*> PieceTable::getCommand(int pos, int length)
 {
     std::vector<Command*> output;
     auto node = getNode(root, pos);
+    pos += node->start;
     while (length > 0)
     {
         const int node_length = (node->length < length) ? node->length : length;
@@ -470,14 +480,20 @@ std::vector<Command*> PieceTable::getCommand(int pos, int length)
     return output;
 }
 
-void PieceTable::debug()
+int rec[200];
+
+void printTree(const Node* curr, const int depth)
 {
-    Node* node = root;
-    while (node->left != nullptr)
-        node = node->left;
-    do
-    {
-        std::cout << node->left_subtree_length << std::endl;
-        node = getNextNode(node);
-    } while (node != nullptr);
+    if(curr==nullptr)return;
+    printf("\t");
+    for(int i=0;i<depth;i++)
+        if(i==depth-1)
+            printf("%s\u2014\u2014\u2014", rec[depth-1]?"\u0371":"\u221F");
+        else
+            printf("%s   ",rec[i]?"\u23B8":"  ");
+    printf("%d, %d[%d, %d]\n", curr->left_subtree_length, curr->index, curr->start, curr->length);
+    rec[depth]=1;
+    printTree(curr->right,depth+1);
+    rec[depth]=0;
+    printTree(curr->left,depth+1);
 }
