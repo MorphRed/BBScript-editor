@@ -8,6 +8,7 @@
 #include <format>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 
 #include "nlohmann/json.hpp"
 #include "whereami/whereami.h"
@@ -84,53 +85,142 @@ std::vector<ArgFormat> Parser::fmt_parse(const std::string& fmt_txt)
     return format;
 }
 
-Parser::Parser(const std::string& game)
+void Parser::loadAliases()
 {
-    this->game = game;
-    std::string path;
+    // TODO alias files
+    for (const auto& entry : std::filesystem::directory_iterator(path_db / "named_values"))
     {
-        int dirname_length, path_len;
-        path_len = wai_getExecutablePath(nullptr, 0, nullptr);
-        auto path_c = static_cast<char*>(malloc(path_len + 1));
-        wai_getExecutablePath(path_c, path_len, &dirname_length);
-        path_c[dirname_length] = '\0';
-        path = static_cast<std::string>(path_c) + "/static_db/" + game + "/";
-        free(path_c);
+        const auto& current_path = entry.path();
+        if (entry.is_regular_file())
+        {
+            auto current_json = json::parse(std::ifstream{current_path});
+            auto filename_stem = current_path.filename().stem().string();
+            aliasFmt alias{};
+            for (auto& [key, value] : current_json.items())
+            {
+                if (!value.is_string())
+                    throw std::runtime_error{"Invalid alias name"};
+                alias.emplace(key, value);
+            }
+            if (!aliases_map.contains(filename_stem))
+            {
+                aliases_map.emplace(filename_stem, aliases_map.size());
+            }
+            aliases[aliases_map.at(filename_stem)] = alias;
+        }
+        else if (entry.is_directory())
+        {
+            aliasFmt alias{};
+            for (const auto& entry_final : std::filesystem::directory_iterator(current_path))
+            {
+                const auto& final_path = entry_final.path();
+                if (!entry_final.is_regular_file() || final_path.filename().stem() != "global")
+                    continue;
+                auto current_json = json::parse(std::ifstream{final_path});
+                auto filename_stem = current_path.filename().stem().string();
+                // TODO character name parsing
+                for (auto& [key, value] : current_json.items())
+                {
+                    if (!value.is_string())
+                        throw std::runtime_error{"Invalid alias name"};
+                    alias[key] = value;
+                }
+                if (!aliases_map.contains(filename_stem))
+                {
+                    aliases_map.emplace(filename_stem, aliases_map.size());
+                }
+                aliases[aliases_map.at(filename_stem)] = alias;
+            }
+        }
     }
-    auto command_json = json::parse(std::ifstream{path + "command_db.json"});
-    auto function_json = json::parse(std::ifstream{path + "function_db.json"});
-    for (auto& [key, value] : command_json.items())
+}
+
+void Parser::loadCommands()
+{
+    auto command_json = json::parse(std::ifstream{path_db / "command_db.json"});
+    for (auto& [cmd_id_json, cmd_data] : command_json.items())
     {
-        int cmd_id;
-        std::from_chars(key.data(), key.data() + key.size(), cmd_id);
+        int cmd_id = std::stoi(cmd_id_json);
         std::vector<ArgFormat> formats;
         int size = 0;
-        if (value.contains("format"))
+        if (cmd_data.contains("format"))
         {
-            formats = fmt_parse(value["format"]);
+            formats = fmt_parse(cmd_data["format"]);
             for (auto [length, format_type] : formats)
                 size += length;
         }
-        else if (value.contains("size"))
+        else if (cmd_data.contains("size"))
         {
-            size = value["size"];
+            size = cmd_data["size"];
             const FormatDef fmt{FormatDef::string};
             formats.emplace_back(size, fmt);
         }
         else
-            throw std::runtime_error{"No format or given for " + key};
-        auto id = (value.contains("name"))
-                      ? Id{cmd_id, key, formats, value["name"], size}
-                      : Id{cmd_id, key, formats, std::nullopt, size};
-        cmd_id_db.insert({cmd_id, id});
+            throw std::runtime_error{"No format or size given for " + cmd_id_json};
+        const auto name = cmd_data.contains("name") ? std::optional<std::string>(cmd_data["name"]) : std::nullopt;
+
+        auto parseAlias = [&]()
+        {
+            std::unordered_map<int, int> id_aliases{};
+            if (!cmd_data.contains("alias"))
+                return id_aliases;
+            if (const auto alias_params = cmd_data["alias"]; alias_params.is_string())
+            {
+                const std::string alias_str = alias_params;
+                if (!aliases_map.contains(alias_str))
+                    return id_aliases;
+                auto alias_id = aliases_map[alias_str];
+                for (int i = 0; i < formats.size(); ++i)
+                {
+                    id_aliases.emplace(i, alias_id);
+                }
+            }
+            else if (alias_params.is_object())
+            {
+                for (auto& [id, alias_name] : alias_params.items())
+                {
+                    int i = std::stoi(id);
+                    const std::string alias_str = alias_name;
+                    if (!aliases_map.contains(alias_str))
+                        continue;
+                    auto alias_id = aliases_map[alias_str];
+                    id_aliases.emplace(i, alias_id);
+                }
+            }
+            return id_aliases;
+        };
+        auto id = Id{cmd_id, cmd_id_json, formats, parseAlias(), name, size};
+        cmd_id_db.emplace(cmd_id, id);
     }
+}
+
+Parser::Parser(const std::string& game)
+{
+    this->game = game;
+    {
+        // We get the path
+        int dirname_length;
+        const int path_len = wai_getExecutablePath(nullptr, 0, nullptr);
+        const auto path_c = static_cast<char*>(malloc(path_len + 1));
+        wai_getExecutablePath(path_c, path_len, &dirname_length);
+        path_c[dirname_length] = '\0';
+        path_db = static_cast<std::string>(path_c);
+        path_db.append("static_db").append(game);
+        free(path_c);
+    }
+    loadAliases();
+    loadCommands();
+    auto function_json = json::parse(std::ifstream{path_db / "function_db.json"});
     for (auto& [key, value] : function_json.items())
     {
-        // int cmd_id;
-        // std::from_chars(key.data(), key.data() + key.size(), cmd_id);
-        // value
+        // TODO function separation
+        int cmd_id = std::stoi(key);
+        if (!value.contains("end"))
+        {
+            continue;
+        }
+        int end_id = value["end"];
     }
-    // TODO alias files
 }
 
 std::vector<Command> Parser::register_file(const std::string& in)
@@ -186,6 +276,7 @@ std::vector<Command> Parser::register_file(const std::string& in)
     {
         Id& id = cmd_id_db.at(read_file_int());
         commands.emplace_back(id, read_file(id));
+        // TODO don't forget to remove this ig
         auto var = debug_parser(commands.back().arguments);
     }
     return commands;

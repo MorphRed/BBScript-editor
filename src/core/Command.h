@@ -8,6 +8,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 struct FormatDef
@@ -42,7 +43,7 @@ struct FormatDef
             size = 4;
             break;
         default:
-            throw std::invalid_argument("Implemented format type");
+            throw std::invalid_argument("Unimplemented format type");
         }
     }
 };
@@ -58,6 +59,7 @@ struct Id
     int cmd_id;
     std::string str_id;
     std::vector<ArgFormat> formats;
+    std::unordered_map<int, int> aliases;
     std::optional<std::string> name;
     int size;
 };

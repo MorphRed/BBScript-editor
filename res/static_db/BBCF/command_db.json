@@ -62,7 +62,10 @@
   },
   "15": {
     "format": "i",
-    "name": "upon"
+    "name": "upon",
+    "alias": {
+      "0": "upon"
+    }
   },
   "16": {
     "format": "",
@@ -70,7 +73,10 @@
   },
   "17": {
     "format": "i",
-    "name": "ClearUpon"
+    "name": "ClearUpon",
+    "alias": {
+      "0": "upon"
+    }
   },
   "18": {
     "type_check": [1],
@@ -113,19 +119,31 @@
   },
   "28": {
     "format": "i32s",
-    "name": "IfUponThenEnterState"
+    "name": "IfUponThenEnterState",
+    "alias": {
+      "0": "upon"
+    }
   },
   "29": {
     "format": "ii",
-    "name": "IfUponThenGotoLabel"
+    "name": "IfUponThenGotoLabel",
+    "alias": {
+      "0": "upon"
+    }
   },
   "30": {
     "format": "ii",
-    "name": "UponArgument1"
+    "name": "UponArgument1",
+    "alias": {
+      "0": "upon"
+    }
   },
   "31": {
     "format": "ii",
-    "name": "UponArgument2"
+    "name": "UponArgument2",
+    "alias": {
+      "0": "upon"
+    }
   },
   "32": {
     "format": "16s",
@@ -1887,7 +1905,8 @@
   },
   "9322": {
     "format": "i",
-    "name": "GroundedHitReaction"
+    "name": "GroundedHitReaction",
+    "alias": "hit_animation"
   },
   "9323": {
     "format": "",
@@ -1895,7 +1914,8 @@
   },
   "9324": {
     "format": "i",
-    "name": "CHGroundedHitReaction"
+    "name": "CHGroundedHitReaction",
+    "alias": "hit_animation"
   },
   "9325": {
     "format": "",
@@ -1903,7 +1923,8 @@
   },
   "9334": {
     "format": "i",
-    "name": "AirHitReaction"
+    "name": "AirHitReaction",
+    "alias": "hit_animation"
   },
   "9335": {
     "format": "",
@@ -1911,7 +1932,8 @@
   },
   "9336": {
     "format": "i",
-    "name": "CHAirHitReaction"
+    "name": "CHAirHitReaction",
+    "alias": "hit_animation"
   },
   "9337": {
     "format": "",
@@ -2735,7 +2757,8 @@
   "14003": {
     "format": "i",
     "hex": true,
-    "name": "Move_Condition"
+    "name": "Move_Condition",
+    "alias": "move_condition"
   },
   "14004": {
     "format": "i",
@@ -3363,7 +3386,10 @@
   },
   "21007": {
     "format": "ii",
-    "name": "TriggerObjectUpon"
+    "name": "TriggerObjectUpon",
+    "alias": {
+      "1": "upon"
+    }
   },
   "21008": {
     "format": "i",
@@ -3383,11 +3409,17 @@
   },
   "21012": {
     "format": "32si",
-    "name": "TriggerUpon"
+    "name": "TriggerUpon",
+    "alias": {
+      "1": "upon"
+    }
   },
   "21013": {
     "format": "32si",
-    "name": "TriggerUponOnOldestObjectWithName"
+    "name": "TriggerUponOnOldestObjectWithName",
+    "alias": {
+      "1": "upon"
+    }
   },
   "21014": {
     "format": "i"

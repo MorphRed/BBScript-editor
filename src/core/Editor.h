@@ -17,7 +17,7 @@ public:
     PieceTable piece_table;
     explicit Editor(Parser& parser);
     void parse(const std::string& in);
-    void insert(int index, std::vector<Command>& commands);
+    void insert(int index, const std::vector<Command>& commands);
     std::vector<std::vector<std::string>> getText(int pos, int length);
     std::vector<std::vector<std::string>> getText(int pos);
 };

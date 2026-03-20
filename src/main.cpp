@@ -27,14 +27,14 @@ int main(int argc, char* argv[])
     Parser parser{game};
     Editor editor{parser};
     editor.parse(in);
-    std::vector<Command> test1 = {{parser.cmd_id_db.at(4), {"1", "1"}}};
-    std::vector<Command> test2 = {{parser.cmd_id_db.at(4), {"2", "2"}}};
-    std::vector<Command> test3 = {{parser.cmd_id_db.at(4), {"3", "3"}}};
+    // std::vector<Command> test1 = {{parser.cmd_id_db.at(4), {"1", "1"}}};
+    // std::vector<Command> test2 = {{parser.cmd_id_db.at(4), {"2", "2"}}};
+    // std::vector<Command> test3 = {{parser.cmd_id_db.at(4), {"3", "3"}}};
+    //
+    // editor.insert(1, test1);
+    // editor.insert(0, test2);
+    // editor.insert(1, test3);
     
-    editor.insert(1, test1);
-    editor.insert(0, test2);
-    editor.insert(1, test3);
-    
-    auto line = editor.getText(0, 20);
+    auto line = editor.getText(0, 10000);
     std::cout << debug_parser(line) << std::endl;
 }
